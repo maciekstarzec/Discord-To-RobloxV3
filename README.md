@@ -1,2 +1,6 @@
 # Discord-To-RobloxV3
-System for communicating with a Roblox server with discord bot implementation
+Make sure to follow the tutorial on DevForum found [here](https://google.com)
+
+Please report any uncaught errors in `Issues`.
+
+Support me and help fund other projects by donating via CashApp: `$kinqeli21`
