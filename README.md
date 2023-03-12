@@ -1,7 +1,8 @@
-# Discord-To-RobloxV3.1
+# Discord-To-RobloxV3.11
 Make sure to follow the tutorial on DevForum found [here](https://devforum.roblox.com/t/v3-discord-to-roblox-ban-bot-100-free-stable-datastore-support-nodejs/2206142)
 
 
+`logChannelID` - Your channel logging ID here
 
 `botToken` - Your Discord Bot Token Here
 

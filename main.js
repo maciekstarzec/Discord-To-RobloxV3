@@ -254,7 +254,7 @@ function timeCheck(time) {
     }
 }
 
-function logMessage(method, usr) {
+async function logMessage(method, usr) {
     const Emb = new EmbedBuilder()
         .setColor('#eb4034')
         .setTitle("Command Executed")
@@ -262,7 +262,12 @@ function logMessage(method, usr) {
         .setTimestamp()
         .setFooter(footer);
 
-    logChannel.send({ embeds: [Emb] });
+    try {
+        const channel = await client.channels.fetch(logChannelID);
+        await channel.send({ embeds: [Emb] });
+    } catch (err) {
+        console.log(`Error sending message: ${err.message}`);
+    }
 }
 
 client.on('messageCreate', async (message) => {
