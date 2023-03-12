@@ -4,7 +4,7 @@ const https = require('https');
 
 const { Client, EmbedBuilder, GatewayIntentBits, Guild } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.MessageContent] });
-const { universeID, adminRole, botPrefix, datastoreApiKey, botToken } = require('./Credentials/Config.json');
+const { universeID, adminRole, botPrefix, datastoreApiKey, botToken, loggingChannel } = require('./Credentials/Config.json');
 
 let numbers = [
     "0️⃣",
@@ -254,6 +254,17 @@ function timeCheck(time) {
     }
 }
 
+function logMessage(method, usr) {
+    const Emb = new EmbedBuilder()
+        .setColor('#eb4034')
+        .setTitle("Command Executed")
+        .setDescription("Command: " + method + " | User: " + usr)
+        .setTimestamp()
+        .setFooter(footer);
+
+    logChannel.send({ embeds: [Emb] });
+}
+
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
@@ -264,6 +275,7 @@ client.on('messageCreate', async (message) => {
             .setDescription("Working...")
 
         if (isCommand("Ban", message)) {
+            logMessage("Ban", message.author.username);
             var time;
             var BotMsg = await message.channel.send({ embeds: [Emb] });
             if (!args[2]) {
@@ -278,9 +290,11 @@ client.on('messageCreate', async (message) => {
             }
             determineType("Ban", message, BotMsg, args, time);
         } else if (isCommand("Unban", message)) {
+            logMessage("Unban", message.author.username);
             var BotMsg = await message.channel.send({ embeds: [Emb] });
             determineType("Unban", message, BotMsg, args);
         } else if (isCommand("Kick", message)) {
+            logMessage("Kick", message.author.username);
             var BotMsg = await message.channel.send({ embeds: [Emb] });
             determineType("Kick", message, BotMsg, args);
         }
