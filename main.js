@@ -1,6 +1,5 @@
 const crypto = require('crypto');
 const axios = require('axios');
-const https = require('https');
 
 const { Client, EmbedBuilder, GatewayIntentBits, Guild } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.MessageContent] });
@@ -28,30 +27,39 @@ const Invalid = new EmbedBuilder()
     .setColor('#eb4034')
     .setDescription("Invalid user or time specified")
 
-function byUID(method, usr, message) {
+async function byUID(method, usr, message) {
     const Emb = new EmbedBuilder()
-        .setDescription("Attempting to " + method + " UserID " + usr + "...")
-        .setTimestamp()
-
+        .setDescription(`Attempting to ${method} UserID ${usr}...`)
+        .setTimestamp();
+    
     message.edit({ embeds: [Emb] });
-    https.get("https://api.roblox.com/users/" + usr, (res) => {
-        let data = '';
-        res.on('data', d => {
-            data += d
-        })
-        res.on('end', () => {
-            if (res.statusCode == 200) {
-                toBan.push({ method: method, username: JSON.parse(data).Username, value: usr, cid: message.channel.id, mid: message.id });
-                handleDataResponse(JSON.parse(data).Id, method, message, JSON.parse(data).Username);
-                toBan.shift();
-            } else {
-                message.edit({ embeds: [Invalid] });
-            }
+    
+    try {
+        const response = await axios.get(`https://api.roblox.com/users/${usr}`);
+    
+        if (response.status === 200) {
+        toBan.push({
+            method: method,
+            username: response.data.Username,
+            value: usr,
+            cid: message.channel.id,
+            mid: message.id,
         });
-    }).on('error', error => {
-        console.error("RBLX API (UID) | " + error);
-    });
+        handleDataResponse(
+            response.data.Id,
+            method,
+            message,
+            response.data.Username
+        );
+        toBan.shift();
+        } else {
+        message.edit({ embeds: [Invalid] });
+        }
+    } catch (error) {
+        console.error(`RBLX API (UID) | ${error}`);
+    }
 }
+      
 
 async function handleDataResponse(userID, method, msg, username) {
     const entryKey = `user_${userID}`;
@@ -101,29 +109,33 @@ async function handleDataResponse(userID, method, msg, username) {
 async function byUser(method, usr, message, banTime) {
     const tempTime = banTime ? banTime : "permanent";
     const Emb = new EmbedBuilder()
-        .setDescription(`Attempting to ${method} ${usr} for ${tempTime}...`)
-        .setTimestamp();
+      .setDescription(`Attempting to ${method} ${usr} for ${tempTime}...`)
+      .setTimestamp();
     message.edit({ embeds: [Emb] });
-
-    https.get("https://api.roblox.com/users/get-by-username?username=" + usr, (res) => {
-        let data = '';
-
-        res.on('data', d => {
-            data += d;
+  
+    try {
+      const response = await axios.get(
+        `https://api.roblox.com/users/get-by-username?username=${usr}`
+      );
+      
+      if (response.status === 200) {
+        toBan.push({
+          method,
+          username: usr,
+          value: response.data.Id,
+          cid: message.channel.id,
+          mid: message.id,
+          time: tempTime,
         });
-
-        res.on('end', () => {
-            if (res.statusCode === 200) {
-                toBan.push({ method, username: usr, value: JSON.parse(data).Id, cid: message.channel.id, mid: message.id, time: tempTime });
-                handleDataResponse(JSON.parse(data).Id, method, message, usr);
-                toBan.shift();
-            } else {
-                message.edit({ embeds: [Invalid] });
-            }
-        });
-    }).on('error', error => {
-        console.error("RBLX API (Username) | " + error);
-    });
+        
+        handleDataResponse(response.data.Id, method, message, usr);
+        toBan.shift();
+      } else {
+        message.edit({ embeds: [Invalid] });
+      }
+    } catch(error) {
+      console.error("RBLX API (Username) | " + error);
+    }
 }
 
 function isCommand(command, message) {
