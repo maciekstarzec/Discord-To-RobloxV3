@@ -1,10 +1,8 @@
---# selene: allow(parenthese_conditions)
-
 ------- 
 -- Made by: corehimself
 -- Created: 2/28/2023
 -- Updated: 3/12/2023
--------
+------- 
 
 -- // Services
 local PlayersService = game:GetService("Players")
