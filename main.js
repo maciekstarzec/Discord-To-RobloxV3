@@ -31,35 +31,35 @@ async function byUID(method, usr, message) {
     const Emb = new EmbedBuilder()
         .setDescription(`Attempting to ${method} UserID ${usr}...`)
         .setTimestamp();
-    
+
     message.edit({ embeds: [Emb] });
-    
+
     try {
         const response = await axios.get(`https://api.roblox.com/users/${usr}`);
-    
+
         if (response.status === 200) {
-        toBan.push({
-            method: method,
-            username: response.data.Username,
-            value: usr,
-            cid: message.channel.id,
-            mid: message.id,
-        });
-        handleDataResponse(
-            response.data.Id,
-            method,
-            message,
-            response.data.Username
-        );
-        toBan.shift();
+            toBan.push({
+                method: method,
+                username: response.data.Username,
+                value: usr,
+                cid: message.channel.id,
+                mid: message.id,
+            });
+            handleDataResponse(
+                response.data.Id,
+                method,
+                message,
+                response.data.Username
+            );
+            toBan.shift();
         } else {
-        message.edit({ embeds: [Invalid] });
+            message.edit({ embeds: [Invalid] });
         }
     } catch (error) {
         console.error(`RBLX API (UID) | ${error}`);
     }
 }
-      
+
 
 async function handleDataResponse(userID, method, msg, username) {
     const entryKey = `user_${userID}`;
@@ -67,18 +67,17 @@ async function handleDataResponse(userID, method, msg, username) {
     const ConvertAdd = await crypto.createHash("md5").update(JSONValue).digest("base64");
 
     const response = await axios.post(
-        `https://apis.roblox.com/datastores/v1/universes/${universeID}/standard-datastores/datastore/entries/entry`
-        , JSONValue, {
+        `https://apis.roblox.com/datastores/v1/universes/${universeID}/standard-datastores/datastore/entries/entry`, JSONValue, {
             params: {
-                'datastoreName': 'DTRD'
-                , 'entryKey': entryKey
-            }
-            , headers: {
-                'x-api-key': datastoreApiKey
-                , 'content-md5': ConvertAdd
-                , 'content-type': 'application/json'
-            , }
-        , }
+                'datastoreName': 'DTRD',
+                'entryKey': entryKey
+            },
+            headers: {
+                'x-api-key': datastoreApiKey,
+                'content-md5': ConvertAdd,
+                'content-type': 'application/json',
+            },
+        }
     ).catch((err) => {
         console.log(err.response.data);
         console.log(err.message);
@@ -109,32 +108,32 @@ async function handleDataResponse(userID, method, msg, username) {
 async function byUser(method, usr, message, banTime) {
     const tempTime = banTime ? banTime : "permanent";
     const Emb = new EmbedBuilder()
-      .setDescription(`Attempting to ${method} ${usr} for ${tempTime}...`)
-      .setTimestamp();
+        .setDescription(`Attempting to ${method} ${usr} for ${tempTime}...`)
+        .setTimestamp();
     message.edit({ embeds: [Emb] });
-  
+
     try {
-      const response = await axios.get(
-        `https://api.roblox.com/users/get-by-username?username=${usr}`
-      );
-      
-      if (response.status === 200) {
-        toBan.push({
-          method,
-          username: usr,
-          value: response.data.Id,
-          cid: message.channel.id,
-          mid: message.id,
-          time: tempTime,
-        });
-        
-        handleDataResponse(response.data.Id, method, message, usr);
-        toBan.shift();
-      } else {
-        message.edit({ embeds: [Invalid] });
-      }
-    } catch(error) {
-      console.error("RBLX API (Username) | " + error);
+        const response = await axios.get(
+            `https://api.roblox.com/users/get-by-username?username=${usr}`
+        );
+
+        if (response.status === 200) {
+            toBan.push({
+                method,
+                username: usr,
+                value: response.data.Id,
+                cid: message.channel.id,
+                mid: message.id,
+                time: tempTime,
+            });
+
+            handleDataResponse(response.data.Id, method, message, usr);
+            toBan.shift();
+        } else {
+            message.edit({ embeds: [Invalid] });
+        }
+    } catch (error) {
+        console.error("RBLX API (Username) | " + error);
     }
 }
 
