@@ -1,27 +1,25 @@
 const crypto = require('crypto');
 const axios = require('axios');
 
-const { Client, EmbedBuilder, GatewayIntentBits, Guild } = require('discord.js');
+const { Client, EmbedBuilder, GatewayIntentBits } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.MessageContent] });
-const { universeID, adminRole, botPrefix, datastoreApiKey, botToken, loggingChannel } = require('./Credentials/Config.json');
+const { logChannelID, universeID, datastoreApiKey, botToken, botPrefix, adminRole } = require('./Credentials/Config.json');
 
-let numbers = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣"];
-var toBan = [];
+const numbers = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣"];
+const toBan = [];
 
 async function startApp() {
-    var promise = client.login(botToken)
     console.log("Starting...");
-    promise.catch(function(error) {
-        console.error("Discord bot login | " + error);
+    try {
+        await client.login(botToken);
+        console.log(`Successfully logged in ${client.user.tag}`);
+    } catch (error) {
+        console.log(`Failed to login | ${error}`);
         process.exit(1);
-    });
+    }
 }
 
 startApp();
-
-client.on("ready", () => {
-    console.log(`Successfully logged in ${client.user.tag}`);
-});
 
 const Invalid = new EmbedBuilder()
     .setColor('#eb4034')
@@ -38,19 +36,8 @@ async function byUID(method, usr, message) {
         const response = await axios.get(`https://api.roblox.com/users/${usr}`);
 
         if (response.status === 200) {
-            toBan.push({
-                method: method,
-                username: response.data.Username,
-                value: usr,
-                cid: message.channel.id,
-                mid: message.id,
-            });
-            handleDataResponse(
-                response.data.Id,
-                method,
-                message,
-                response.data.Username
-            );
+            toBan.push({method: method, username: response.data.Username, value: usr, cid: message.channel.id, mid: message.id,});
+            await handleDataResponse(response.data.Id, method, message, response.data.Username);
             toBan.shift();
         } else {
             message.edit({ embeds: [Invalid] });
@@ -66,41 +53,42 @@ async function handleDataResponse(userID, method, msg, username) {
     const JSONValue = await JSON.stringify({ method });
     const ConvertAdd = await crypto.createHash("md5").update(JSONValue).digest("base64");
 
-    const response = await axios.post(
-        `https://apis.roblox.com/datastores/v1/universes/${universeID}/standard-datastores/datastore/entries/entry`, JSONValue, {
-            params: {
-                'datastoreName': 'DTRD',
-                'entryKey': entryKey
-            },
-            headers: {
-                'x-api-key': datastoreApiKey,
-                'content-md5': ConvertAdd,
-                'content-type': 'application/json',
-            },
-        }
-    ).catch((err) => {
-        console.log(err.response.data);
-        console.log(err.message);
-    });
+    try {
+        const response = await axios.post(
+            `https://apis.roblox.com/datastores/v1/universes/${universeID}/standard-datastores/datastore/entries/entry`, JSONValue, {
+                params: {
+                    'datastoreName': 'DTRD',
+                    'entryKey': entryKey
+                },
+                headers: {
+                    'x-api-key': datastoreApiKey,
+                    'content-md5': ConvertAdd,
+                    'content-type': 'application/json',
+                },
+            }
+        );
 
-    const color = response && response.status >= 200 && response.status <= 299 ?
-        '#00ff44' :
-        '#eb4034';
+        const color = response && response.status >= 200 && response.status <= 299 ?
+            '#00ff44' :
+            '#eb4034';
 
-    const embed = new EmbedBuilder()
-        .setColor(color)
-        .setTitle(`${method} ${response ? 'Successful' : 'Failed'}`)
-        .addFields({ name: 'Username', value: `${username}` })
-        .addFields({ name: 'UserID', value: `${userID}` })
-        .setTimestamp();
+        const embed = new EmbedBuilder()
+            .setColor(color)
+            .setTitle(`${method} ${response ? 'Successful' : 'Failed'}`)
+            .addFields({ name: 'Username', value: `${username}` })
+            .addFields({ name: 'UserID', value: `${userID}` })
+            .setTimestamp();
 
-    const channel = await client.channels.cache.get(msg.channel.id);
-    const msgObj = await channel.messages.fetch(msg.id);
+        const channel = await client.channels.cache.get(msg.channel.id);
+        const msgObj = await channel.messages.fetch(msg.id);
 
-    if (msgObj !== undefined) {
-        msgObj.edit({ embeds: [embed] });
-    } else {
-        msgObj.send({ embeds: [embed] });
+        if (msgObj) {
+            msgObj.edit({ embeds: [embed] });
+          } else {
+            msgObj.send({ embeds: [embed] });
+          }
+    } catch (error) {
+        console.error(`Datastore API | ${error}`);
     }
 }
 
@@ -118,15 +106,7 @@ async function byUser(method, usr, message, banTime) {
         );
 
         if (response.status === 200) {
-            toBan.push({
-                method,
-                username: usr,
-                value: response.data.Id,
-                cid: message.channel.id,
-                mid: message.id,
-                time: tempTime,
-            });
-
+            toBan.push({method, username: usr, value: response.data.Id, cid: message.channel.id, mid: message.id, time: tempTime,});
             handleDataResponse(response.data.Id, method, message, usr);
             toBan.shift();
         } else {
@@ -156,6 +136,7 @@ async function determineType(method, msg, BotMsg, args, banTime) {
             .addFields({ name: numbers[0] + ": Username", value: "This is a player's username in game" })
             .addFields({ name: numbers[1] + ": UserID", value: "This is the player's UserID connected with the account" })
             .setTimestamp()
+            
         BotMsg.edit({ embeds: [Emb] });
         await Promise.all(numbers.map(async (n) => { await BotMsg.react(n) }));
 
@@ -216,7 +197,7 @@ async function executeCommand(command, args, message) {
 
     switch (command.toLowerCase()) {
         case "ban":
-            logMessage("Ban", message.author.username);
+            logMessage("Ban", message.author, args);
             if (!args[1]) {
                 determineType("Ban", message, BotMsg, args);
             } else {
@@ -230,18 +211,41 @@ async function executeCommand(command, args, message) {
             break;
 
         case "unban":
-            logMessage("Unban", message.author.username);
+            logMessage("Unban", message.author, args);
             determineType("Unban", message, BotMsg, args);
             break;
 
         case "kick":
-            logMessage("Kick", message.author.username);
+            logMessage("Kick", message.author, args);
             determineType("Kick", message, BotMsg, args);
             break;
 
         default:
             BotMsg.edit({ content: 'Sorry, I don\'t recognize that command.' });
             break;
+    }
+}
+
+async function logMessage(method, user, args) {
+    const chan = await (client.channels.fetch(logChannelID));
+
+    if (chan) {
+        const logEmbed = new EmbedBuilder()
+            .setColor('#eb4034')
+            .setTitle('Command Executed')
+            .addFields({ name: 'Administrator', value: `${user}` })
+            .addFields({ name: 'Action', value: `${method} ${args.join(' ')}` })
+            .setThumbnail(user.displayAvatarURL())
+            .setTimestamp();
+
+        chan.send({ embeds: [logEmbed] })
+    } else {
+        const noChannel = new EmbedBuilder()
+            .setColor('#eb4034')
+            .setDescription(`Failed to find channel with ID ${ID}`)
+            .setTimestamp()
+
+        BotMsg.edit({ embeds: [noChannel] })
     }
 }
 
@@ -256,6 +260,12 @@ client.on('messageCreate', async (message) => {
         const [command, ...args] = message.content.slice(botPrefix.length).split(' ');
         executeCommand(command, args, message);
     }
+});
+
+client.on('ready', async () => {
+    console.log(`${client.user.tag} is now online!`);
+    const channel = await client.channels.cache.get(logChannelID);
+    channel.send(`${client.user.tag} is now online!`);
 });
 
 client.on('error', console.error);
