@@ -43,6 +43,7 @@ node_modules/
 jspm_packages/
 node_modules
 .env
+selene.toml
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
