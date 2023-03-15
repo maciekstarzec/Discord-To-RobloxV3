@@ -143,7 +143,9 @@ module.exports = {
                 await interaction.reply('Unable to find that user on Roblox.');
             }
         } catch (error) {
-            await interaction.reply('An error occurred while trying to fetch data from the Roblox API.');
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.reply('An error occurred while trying to fetch data from the Roblox API.');
+            }
         }
     }
 };
