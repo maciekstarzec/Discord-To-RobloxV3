@@ -43,7 +43,6 @@ node_modules/
 jspm_packages/
 node_modules
 .env
-Config.json
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
