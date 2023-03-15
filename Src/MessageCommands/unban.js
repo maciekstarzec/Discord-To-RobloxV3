@@ -1,5 +1,7 @@
+require('dotenv').config({ path: '../.env' });
+const datastoreApiKey = process.env.dsAPIKey
 const { Collection, EmbedBuilder, SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { universeID, datastoreApiKey, logChannelID } = require('../Credentials/Config.json');
+const { universeID, logChannelID } = require('../Credentials/Config.json');
 const axios = require('axios').default;
 const crypto = require('crypto');
 
@@ -138,7 +140,9 @@ module.exports = {
                 await interaction.reply('Unable to find that user on Roblox.');
             }
         } catch (error) {
-            await interaction.reply('An error occurred while trying to fetch data from the Roblox API.');
+            if (!interaction.deferred && !interaction.replied) {
+              await interaction.reply('An error occurred while trying to fetch data from the Roblox API.');
+            }
         }
     }
 };
