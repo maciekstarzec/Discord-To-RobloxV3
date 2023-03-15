@@ -12,8 +12,6 @@ Make sure to follow the tutorial on DevForum found [here](https://devforum.roblo
 
 `datastoreApiKey` Your Datastore Api Key
 
-`botPrefix` - The prefix for your commands
-
 `clientId` - Your Discord Bot Client ID
 
 `guildId` - Your Discord Guild ID
