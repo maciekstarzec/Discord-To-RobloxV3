@@ -71,6 +71,8 @@ local function HandleBanMethod(plr, method, time)
 				else
 					warn("Invalid time unit provided.")
 				end
+			elseif time == "Permanent" then
+				plr:Kick(banMethod.Message:format(time))
 			else
 				warn("Invalid time format provided.")
 			end

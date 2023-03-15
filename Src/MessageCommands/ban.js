@@ -44,7 +44,7 @@ module.exports = {
         const userOrID = interaction.options.getString('category');
         const userToBan = interaction.options.getString('input');
         const timeToBan = interaction.options.getInteger('time');
-        let combinedTime = timeToBan + lengthToBan;
+        let combinedTime = timeToBan && lengthToBan ? timeToBan + lengthToBan : 'Permanent';
         const lengthToBan = interaction.options.getString('length');
         let baseURL = "";
 
