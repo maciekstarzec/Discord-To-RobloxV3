@@ -1,12 +1,38 @@
-const crypto = require('crypto');
-const axios = require('axios');
+const fs = require('node:fs');
+const path = require('node:path');
 
-const { Client, EmbedBuilder, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.MessageContent] });
-const { logChannelID, universeID, datastoreApiKey, botToken, botPrefix, adminRole } = require('./Credentials/Config.json');
+const { botToken } = require('./Src/Credentials/Config.json');
+client.commands = new Collection();
 
-const numbers = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣"];
-const toBan = [];
+const commandsPath = path.join(__dirname, 'Src', 'MessageCommands');
+const eventsPath = path.join(__dirname, 'Src', 'Events');
+
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+
+    if ('data' in command && 'execute' in command) {
+        client.commands.set(command.data.name, command);
+    } else {
+        console.log(`[WARNING] The command at ${filePath} is missing either the 'data' or 'execute' property.`);
+    }
+}
+
+for (const file of eventFiles) {
+    const filePath = path.join(eventsPath, file);
+    const event = require(filePath);
+
+    if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args));
+    } else {
+        client.on(event.name, (...args) => event.execute(...args));
+    }
+}
 
 async function startApp() {
     console.log("Starting...");
@@ -20,252 +46,3 @@ async function startApp() {
 }
 
 startApp();
-
-const Invalid = new EmbedBuilder()
-    .setColor('#eb4034')
-    .setDescription("Invalid user or time specified")
-
-async function byUID(method, usr, message) {
-    const Emb = new EmbedBuilder()
-        .setDescription(`Attempting to ${method} UserID ${usr}...`)
-        .setTimestamp();
-
-    message.edit({ embeds: [Emb] });
-
-    try {
-        const response = await axios.get(`https://api.roblox.com/users/${usr}`);
-
-        if (response.status === 200) {
-            toBan.push({method: method, username: response.data.Username, value: usr, cid: message.channel.id, mid: message.id,});
-            await handleDataResponse(response.data.Id, method, message, response.data.Username);
-            toBan.shift();
-        } else {
-            message.edit({ embeds: [Invalid] });
-        }
-    } catch (error) {
-        console.error(`RBLX API (UID) | ${error}`);
-    }
-}
-
-
-async function handleDataResponse(userID, method, msg, username) {
-    const entryKey = `user_${userID}`;
-    const JSONValue = await JSON.stringify({ method });
-    const ConvertAdd = await crypto.createHash("md5").update(JSONValue).digest("base64");
-
-    try {
-        const response = await axios.post(
-            `https://apis.roblox.com/datastores/v1/universes/${universeID}/standard-datastores/datastore/entries/entry`, JSONValue, {
-                params: {
-                    'datastoreName': 'DTRD',
-                    'entryKey': entryKey
-                },
-                headers: {
-                    'x-api-key': datastoreApiKey,
-                    'content-md5': ConvertAdd,
-                    'content-type': 'application/json',
-                },
-            }
-        );
-
-        const color = response && response.status >= 200 && response.status <= 299 ?
-            '#00ff44' :
-            '#eb4034';
-
-        const embed = new EmbedBuilder()
-            .setColor(color)
-            .setTitle(`${method} ${response ? 'Successful' : 'Failed'}`)
-            .addFields({ name: 'Username', value: `${username}` })
-            .addFields({ name: 'UserID', value: `${userID}` })
-            .setTimestamp();
-
-        const channel = await client.channels.cache.get(msg.channel.id);
-        const msgObj = await channel.messages.fetch(msg.id);
-
-        if (msgObj) {
-            msgObj.edit({ embeds: [embed] });
-          } else {
-            msgObj.send({ embeds: [embed] });
-          }
-    } catch (error) {
-        console.error(`Datastore API | ${error}`);
-    }
-}
-
-// updated byUser function
-async function byUser(method, usr, message, banTime) {
-    const tempTime = banTime ? banTime : "permanent";
-    const Emb = new EmbedBuilder()
-        .setDescription(`Attempting to ${method} ${usr} for ${tempTime}...`)
-        .setTimestamp();
-    message.edit({ embeds: [Emb] });
-
-    try {
-        const response = await axios.get(
-            `https://api.roblox.com/users/get-by-username?username=${usr}`
-        );
-
-        if (response.status === 200) {
-            toBan.push({method, username: usr, value: response.data.Id, cid: message.channel.id, mid: message.id, time: tempTime,});
-            handleDataResponse(response.data.Id, method, message, usr);
-            toBan.shift();
-        } else {
-            message.edit({ embeds: [Invalid] });
-        }
-    } catch (error) {
-        console.error("RBLX API (Username) | " + error);
-    }
-}
-
-function isCommand(command, message) {
-    return message.content.toLowerCase().startsWith(botPrefix + command.toLowerCase());
-}
-
-const TookTooLong = new EmbedBuilder()
-    .setColor('#eb4034')
-    .setDescription("You took too long to respond!")
-
-async function determineType(method, msg, BotMsg, args, banTime) {
-    if (isNaN(Number(args[1]))) {
-        byUser(method, args[1], BotMsg, banTime);
-    } else {
-        const Emb = new EmbedBuilder()
-            .setColor('#ea00ff')
-            .setTitle("Is this a UserID or a Username?")
-            .setDescription("Please react with the number that matches the answer.")
-            .addFields({ name: numbers[0] + ": Username", value: "This is a player's username in game" })
-            .addFields({ name: numbers[1] + ": UserID", value: "This is the player's UserID connected with the account" })
-            .setTimestamp()
-            
-        BotMsg.edit({ embeds: [Emb] });
-        await Promise.all(numbers.map(async (n) => { await BotMsg.react(n) }));
-
-        try {
-            const filter = (reaction, user) => numbers.includes(reaction?.emoji?.name) && user.id === msg.author.id;
-            const collected = await BotMsg.awaitReactions({ filter, max: 1, time: 30000, errors: ['time'] });
-            const reaction = collected.first();
-            const ind = numbers.findIndex(function(n) { return n == reaction.emoji.name; });
-            BotMsg.reactions.removeAll().catch(error => console.error('Failed to clear reactions: ', error));
-
-            if (ind == 0) {
-                byUser(method, args[1], BotMsg, banTime);
-            } else if (ind == 1) {
-                byUID(method, args[1], BotMsg, banTime);
-            } else {
-                BotMsg.edit({ embeds: [Invalid] });
-            }
-        } catch (error) {
-            if (error instanceof CollectionError) BotMsg.edit({ embeds: [TookTooLong] });
-            BotMsg.reactions.removeAll().catch(error => console.error('Failed to clear reactions: ', error));
-        }
-    }
-}
-
-function timeCheck(time) {
-    let regex = /^(\d+)(s|m|h|d|y)?$/;
-    let matches = regex.exec(time);
-
-    if (matches) {
-        let duration = parseInt(matches[1]);
-        let unit = matches[2];
-        switch (unit) {
-            case "s":
-                duration = duration * 1000;
-                break;
-            case "m":
-                duration = duration * 60 * 1000;
-                break;
-            case "h":
-                duration = duration * 60 * 60 * 1000;
-                break;
-            case "d":
-                duration = duration * 24 * 60 * 60 * 1000;
-                break;
-            case "y":
-                duration = duration * 365 * 24 * 60 * 60 * 1000;
-                break;
-            default:
-                duration = duration * 1;
-        }
-        return new Date(Date.now() + duration);
-    }
-}
-
-async function executeCommand(command, args, message) {
-    let time;
-    var BotMsg = await message.channel.send({ embeds: [Emb] });
-
-    switch (command.toLowerCase()) {
-        case "ban":
-            logMessage("Ban", message.author, args);
-            if (!args[1]) {
-                determineType("Ban", message, BotMsg, args);
-            } else {
-                time = timeCheck(args[2]);
-                if (!time) {
-                    BotMsg.edit({ embeds: [Invalid] });
-                    return;
-                }
-                determineType("Ban", message, BotMsg, args, time);
-            }
-            break;
-
-        case "unban":
-            logMessage("Unban", message.author, args);
-            determineType("Unban", message, BotMsg, args);
-            break;
-
-        case "kick":
-            logMessage("Kick", message.author, args);
-            determineType("Kick", message, BotMsg, args);
-            break;
-
-        default:
-            BotMsg.edit({ content: 'Sorry, I don\'t recognize that command.' });
-            break;
-    }
-}
-
-async function logMessage(method, user, args) {
-    const chan = await (client.channels.fetch(logChannelID));
-
-    if (chan) {
-        const logEmbed = new EmbedBuilder()
-            .setColor('#eb4034')
-            .setTitle('Command Executed')
-            .addFields({ name: 'Administrator', value: `${user}` })
-            .addFields({ name: 'Action', value: `${method} ${args.join(' ')}` })
-            .setThumbnail(user.displayAvatarURL())
-            .setTimestamp();
-
-        chan.send({ embeds: [logEmbed] })
-    } else {
-        const noChannel = new EmbedBuilder()
-            .setColor('#eb4034')
-            .setDescription(`Failed to find channel with ID ${ID}`)
-            .setTimestamp()
-
-        BotMsg.edit({ embeds: [noChannel] })
-    }
-}
-
-const Emb = new EmbedBuilder()
-    .setColor('#eb4034')
-    .setDescription("Working...")
-
-client.on('messageCreate', async (message) => {
-    if (message.author.bot) return;
-
-    if (message.member.roles.cache.some(role => role.name === adminRole)) {
-        const [command, ...args] = message.content.slice(botPrefix.length).split(' ');
-        executeCommand(command, args, message);
-    }
-});
-
-client.on('ready', async () => {
-    console.log(`${client.user.tag} is now online!`);
-    const channel = await client.channels.cache.get(logChannelID);
-    channel.send(`${client.user.tag} is now online!`);
-});
-
-client.on('error', console.error);

@@ -1,4 +1,4 @@
-## Discord-To-Roblox V3.11
+## Discord-To-Roblox V3.2.1
 Make sure to follow the tutorial on DevForum found [here](https://devforum.roblox.com/t/v3-discord-to-roblox-ban-bot-100-free-stable-datastore-support-nodejs/2206142)
 
 
@@ -10,11 +10,13 @@ Make sure to follow the tutorial on DevForum found [here](https://devforum.roblo
 
 [Image Example](https://i.imgur.com/vNdAwg5.png)
 
-`rolename` - Admin role that can use the bot
-
 `datastoreApiKey` Your Datastore Api Key
 
+`botPrefix` - The prefix for your commands
 
+`clientId` - Your Discord Bot Client ID
+
+`guildId` - Your Discord Guild ID
 
 Please report any uncaught errors in `Issues`.
 
