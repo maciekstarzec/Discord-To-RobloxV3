@@ -30,17 +30,22 @@ module.exports = {
         let baseURL = "";
 
         if (userOrID === 'username') {
-            baseURL = `https://api.roblox.com/users/get-by-username?username=${encodeURIComponent(userToKick)}`;
+            baseURL = `https://users.roblox.com/v1/usernames/users`;
         } else {
             baseURL = `https://api.roblox.com/users/${userToKick}`;
         }
 
-        try {
-            const robloxResponse = await axios.get(baseURL);
-            const robloxData = robloxResponse.data;
+        let body = {
+            "usernames": [userToKick],
+            "excludeBannedUsers": true
+        }
 
-            if (robloxData.Id) {
-                const userId = robloxData.Id;
+        try {
+            const robloxResponse = await axios.post(baseURL, body);
+            const robloxData = robloxResponse.data.data[0];
+
+            if (robloxData.id) {
+                const userId = robloxData.id;
                 const thumbnailResponse = await axios.get(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${userId}&size=420x420&format=Png&isCircular=false`);
                 const avatarUrl = thumbnailResponse.data.data[0].imageUrl;
 
@@ -70,7 +75,7 @@ module.exports = {
                             }
                             
                             const method = "Kick";
-                            const entryKey = `user_${robloxData.Id}`;
+                            const entryKey = `user_${robloxData.id}`;
                             const JSONValue = await JSON.stringify({ method });
                             const ConvertAdd = await crypto.createHash("md5").update(JSONValue).digest("base64");
 
@@ -97,8 +102,8 @@ module.exports = {
                                     .setColor(color)
                                     .setTitle(`${method} ${response ? 'Successful' : 'Failed'}`)
                                     .setThumbnail(avatarUrl)
-                                    .addFields({ name: 'Username', value: `${robloxData.Username}` })
-                                    .addFields({ name: 'User ID', value: `${robloxData.Id}` })
+                                    .addFields({ name: 'Username', value: `${robloxData.name}` })
+                                    .addFields({ name: 'User ID', value: `${robloxData.id}` })
                                     .setTimestamp();
 
                                 const logEmbed = new EmbedBuilder()
