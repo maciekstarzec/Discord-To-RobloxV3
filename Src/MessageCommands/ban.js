@@ -84,6 +84,10 @@ module.exports = {
                         const reaction = collected.first();
 
                         if (reaction.emoji.name === '👍') {
+                            if (message.reactions.cache.size > 0) {
+                                message.reactions.removeAll().catch(error => console.error('Failed to clear reactions: ', error));
+                            }
+                            
                             const method = "Ban";
                             const entryKey = `user_${robloxData.Id}`;
                             const tbl = {method: method, banEndTime: {timeToBan, lengthToBan}}
@@ -125,10 +129,7 @@ module.exports = {
                                     .addFields({ name: 'Action', value: `${method} ${userToBan}` })
                                     .setThumbnail(interaction.user.displayAvatarURL())
                                     .setTimestamp();
-                        
-                                if (message.reactions.cache.size > 0) {
-                                    message.reactions.removeAll().catch(error => console.error('Failed to clear reactions: ', error));
-                                }
+
                                 if (message) {
                                     message.edit({ embeds: [embed] });
                                     if (logChan) {

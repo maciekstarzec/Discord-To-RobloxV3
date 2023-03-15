@@ -65,6 +65,10 @@ module.exports = {
                         const reaction = collected.first();
 
                         if (reaction.emoji.name === '👍') {
+                            if (message.reactions.cache.size > 0) {
+                                message.reactions.removeAll().catch(error => console.error('Failed to clear reactions: ', error));
+                            }
+                            
                             const method = "Unban";
                             const entryKey = `user_${robloxData.Id}`;
                             const JSONValue = await JSON.stringify({ method });
@@ -104,10 +108,6 @@ module.exports = {
                                     .addFields({ name: 'Action', value: `${method} ${userToUnban}` })
                                     .setThumbnail(interaction.user.displayAvatarURL())
                                     .setTimestamp();
-
-                                if (message.reactions.cache.size > 0) {
-                                    message.reactions.removeAll().catch(error => console.error('Failed to clear reactions: ', error));
-                                }
                         
                                 if (message) {
                                     message.edit({ embeds: [embed] });
