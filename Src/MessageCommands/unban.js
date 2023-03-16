@@ -1,7 +1,5 @@
-require('dotenv').config({ path: '../.env' });
-const datastoreApiKey = process.env.dsAPIKey
 const { Collection, EmbedBuilder, SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { universeID, logChannelID } = require('../Credentials/Config.json');
+const { universeID, logChannelID, datastoreApiKey  } = require('../Credentials/Config.json');
 const axios = require('axios').default;
 const crypto = require('crypto');
 
